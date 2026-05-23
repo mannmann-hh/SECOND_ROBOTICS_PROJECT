@@ -1,0 +1,24 @@
+# pointcloud_to_laserscan.yaml
+# 把 3D 点云 (/ugv/rslidar_points) 转成 2D 激光扫描 (/scan)
+# —— 第二版:range_max 缩到 15m 配合 slam 优化
+
+pointcloud_to_laserscan:
+  ros__parameters:
+    target_frame: "rslidar"
+    transform_tolerance: 0.01
+
+    # 取 rslidar 周围 ±0.2m 的薄片压成 2D
+    min_height: -0.2
+    max_height: 0.2
+
+    # 360 度扫描
+    angle_min: -3.14159
+    angle_max: 3.14159
+    angle_increment: 0.0087
+    scan_time: 0.1
+    range_min: 0.2
+    # *** 关键改动:缩短到 15m,和 slam 的 max_laser_range 一致 ***
+    range_max: 15.0
+    use_inf: true
+
+    concurrency_level: 1

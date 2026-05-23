@@ -1,0 +1,17 @@
+# 编译产物
+build/
+install/
+log/
+
+# bag 文件(太大,且作业禁止)
+*.db3
+*.bag
+bags/
+
+# 序列化地图太大可选择排除(39MB,GitHub 能接受但较大)
+# *.posegraph
+
+# 临时/系统文件
+*.pyc
+__pycache__/
+.vscode/
