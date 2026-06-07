@@ -48,16 +48,16 @@ floorplan
 (
   name "map"
   # *** 用你 Task 1 生成的地图图片 ***
-  bitmap "map.png"
+  bitmap "../map/my_map.png"
   # size [宽 高 厚度],单位米。
   # 必须 = 地图像素尺寸 × resolution。
   # 例:地图 png 是 400×300 像素,resolution 0.05,
   #     则 size = [20.0 15.0 2.0]
   # 这个值你建完图后要按实际改!
-  size [ 30.0 20.0 2.0 ]
+  size [ 30.85 17.75 2.0 ]
   # pose [x y z theta]:地图原点位置。
   # 要和 map.yaml 里的 origin 对应,通常需要微调让坐标系对齐
-  pose [ 0.0 0.0 0.0 0.0 ]
+  pose [ 8.545 -4.125 0.0 0.0 ]
 )
 
 # -------------------- 放置机器人 --------------------
