@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <cctype>
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -50,6 +51,8 @@ public:
     // ---- 创建 action client ----
     action_client_ = rclcpp_action::create_client<NavigateToPose>(
       this, "navigate_to_pose");
+    goal_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+      "goal_pose", 10);
 
     // ---- 读取 CSV ----
     if (!load_goals_from_csv(csv_path_)) {
@@ -62,7 +65,7 @@ public:
       "已从 CSV 读取 %zu 个目标", goals_.size());
 
     start_timer_ = this->create_wall_timer(
-      500ms, std::bind(&GoalPublisher::start_sending, this));
+      1s, std::bind(&GoalPublisher::start_sending, this));
   }
 
   bool is_ok() const { return init_ok_; }
@@ -81,7 +84,7 @@ private:
     while (std::getline(file, line)) {
       if (first_line) {
         first_line = false;
-        if (!line.empty() && (std::isalpha(line[0]))) {
+        if (!line.empty() && (std::isalpha(static_cast<unsigned char>(line[0])))) {
           continue;
         }
       }
@@ -108,16 +111,15 @@ private:
   // -------------------- 启动:等 server 然后发第一个 --------------------
   void start_sending()
   {
-    start_timer_->cancel();
-
-    RCLCPP_INFO(this->get_logger(), "等待 nav2 action server...");
-    if (!action_client_->wait_for_action_server(20s)) {
-      RCLCPP_ERROR(this->get_logger(),
-        "20 秒内未发现 navigate_to_pose action server,退出");
-      rclcpp::shutdown();
+    if (!action_client_->action_server_is_ready()) {
+      RCLCPP_INFO_THROTTLE(
+        this->get_logger(), *this->get_clock(), 5000,
+        "Waiting for nav2 navigate_to_pose action server...");
       return;
     }
-    RCLCPP_INFO(this->get_logger(), "Action server 已就绪");
+
+    start_timer_->cancel();
+    RCLCPP_INFO(this->get_logger(), "Nav2 action server is ready");
     send_next_goal();
   }
 
@@ -144,6 +146,8 @@ private:
     goal_msg.pose.pose.orientation.y = 0.0;
     goal_msg.pose.pose.orientation.z = std::sin(g.theta / 2.0);
     goal_msg.pose.pose.orientation.w = std::cos(g.theta / 2.0);
+
+    goal_pose_pub_->publish(goal_msg.pose);
 
     RCLCPP_INFO(this->get_logger(),
       "发送目标 %zu/%zu: x=%.2f y=%.2f theta=%.3f",
@@ -172,13 +176,19 @@ private:
   {
     if (!goal_handle) {
       RCLCPP_WARN(this->get_logger(),
-        "目标 %zu 被服务器拒绝,跳到下一个",
+        "Goal %zu was rejected, retrying the same goal",
         current_goal_index_ + 1);
-      current_goal_index_++;
-      send_next_goal();
+      start_timer_ = this->create_wall_timer(
+        2s, std::bind(&GoalPublisher::retry_current_goal, this));
     } else {
       RCLCPP_INFO(this->get_logger(), "目标已被接受,机器人开始移动");
     }
+  }
+
+  void retry_current_goal()
+  {
+    start_timer_->cancel();
+    send_next_goal();
   }
 
   // -------------------- 回调:导航过程中的反馈 --------------------
@@ -221,6 +231,7 @@ private:
 
   // -------------------- 成员变量 --------------------
   rclcpp_action::Client<NavigateToPose>::SharedPtr action_client_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pose_pub_;
   rclcpp::TimerBase::SharedPtr start_timer_;
   std::vector<Goal> goals_;
   size_t current_goal_index_;
