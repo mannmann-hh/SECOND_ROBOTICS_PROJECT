@@ -38,12 +38,12 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'stage_bridge_package',
-            default_value='stage_ros2_stageros',
+            default_value='stage_ros2',
             description='Package that provides the Stage ROS 2 bridge executable.'
         ),
         DeclareLaunchArgument(
             'stage_bridge_executable',
-            default_value='stageros',
+            default_value='stage_ros2',
             description='Stage ROS 2 bridge executable.'
         ),
 
