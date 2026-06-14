@@ -51,8 +51,6 @@ public:
     // ---- 创建 action client ----
     action_client_ = rclcpp_action::create_client<NavigateToPose>(
       this, "navigate_to_pose");
-    goal_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
-      "goal_pose", 10);
 
     // ---- 读取 CSV ----
     if (!load_goals_from_csv(csv_path_)) {
@@ -147,8 +145,6 @@ private:
     goal_msg.pose.pose.orientation.z = std::sin(g.theta / 2.0);
     goal_msg.pose.pose.orientation.w = std::cos(g.theta / 2.0);
 
-    goal_pose_pub_->publish(goal_msg.pose);
-
     RCLCPP_INFO(this->get_logger(),
       "发送目标 %zu/%zu: x=%.2f y=%.2f theta=%.3f",
       current_goal_index_ + 1, goals_.size(), g.x, g.y, g.theta);
@@ -231,7 +227,6 @@ private:
 
   // -------------------- 成员变量 --------------------
   rclcpp_action::Client<NavigateToPose>::SharedPtr action_client_;
-  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pose_pub_;
   rclcpp::TimerBase::SharedPtr start_timer_;
   std::vector<Goal> goals_;
   size_t current_goal_index_;
