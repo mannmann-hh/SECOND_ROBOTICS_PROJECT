@@ -7,7 +7,7 @@
 # 关键点:
 #   - drive "omni"  —— 全向运动学(作业明确要求,不是 diff!)
 #   - 激光传感器参数对应从 RSLidar pointcloud 转换出的 laserscan
-#   - localization "odom" + odom_error 模拟里程计噪声
+#   - localization "odom" + odom_error 模拟里程计噪声8
 
 # -------------------- 激光雷达传感器定义 --------------------
 # 这里把 RSLidar(转成 2D laserscan 后)建模成一个 ranger 传感器。
