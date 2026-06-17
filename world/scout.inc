@@ -1,59 +1,59 @@
 # scout.inc
-# 第二个机器人项目 (Task 2) —— Stage 机器人模型定义
+# Second robotics project - Stage robot model definition
 #
-# 机器人:AgileX Scout Mini,全向 (Omnidirectional) 运动学
-# 这个文件定义【可复用的模型】,被 scout.world 引用。
+# Robot: AgileX Scout Mini with omnidirectional kinematics.
+# This file defines a reusable model included by scout.world.
 #
-# 关键点:
-#   - drive "omni"  —— 全向运动学(作业明确要求,不是 diff!)
-#   - 激光传感器参数对应从 RSLidar pointcloud 转换出的 laserscan
-#   - localization "odom" + odom_error 模拟里程计噪声
+# Key points:
+#   - drive "omni" enables omnidirectional motion, not differential drive.
+#   - The laser sensor parameters approximate the LaserScan converted from RSLidar point cloud data.
+#   - localization "odom" plus odom_error simulates odometry noise.
 
-# -------------------- 激光雷达传感器定义 --------------------
-# 这里把 RSLidar(转成 2D laserscan 后)建模成一个 ranger 传感器。
-# fov 360°,样本数和量程要和真实雷达接近。
+# -------------------- LiDAR sensor definition --------------------
+# Model the RSLidar, after conversion to a 2D LaserScan, as a Stage ranger sensor.
+# The 360 degree FOV, sample count, and range approximate the real sensor.
 define rslidar ranger
 (
   sensor
   (
-    # range [最小距离 最大距离],单位米。RSLidar 量程通常较大
+    # range [minimum maximum], in meters. RSLidar usually has a long range.
     range [ 0.05 30.0 ]
-    # 视场角:360 度全向扫描
+    # Field of view: full 360 degree scan.
     fov 360.0
-    # 采样点数:激光每圈的射线数。可按你 laserscan 的实际值调整
+    # Number of rays per scan. Adjust this to match the actual LaserScan if needed.
     samples 720
   )
-  # 传感器外观(仅显示用)
+  # Sensor appearance, used only for visualization.
   color "black"
   size [ 0.06 0.06 0.05 ]
 )
 
-# -------------------- Scout Mini 机器人本体定义 --------------------
+# -------------------- Scout Mini robot body definition --------------------
 define scout_mini position
 (
-  # 初始位姿(会被 .world 里的实例覆盖)
+  # Initial pose, overridden by the instance in the .world file.
   pose [ 0.0 0.0 0.0 0.0 ]
 
-  # 里程计来源:用仿真内置的 odom,并加噪声模拟真实里程计漂移
+  # Odometry source: use Stage's built-in odom and add noise to mimic real drift.
   localization "odom"
-  # odom_error [x误差 y误差 z误差 theta误差],模拟里程计噪声
-  # 真实 /odom 是 noisy 的,这里也加一点让仿真更真实
+  # odom_error [x_error y_error z_error theta_error], used to simulate odometry noise.
+  # Real /odom is noisy, so this makes the simulation more realistic.
   odom_error [ 0.03 0.03 0.0 0.05 ]
 
-  # 机器人尺寸 [长 宽 高],单位米 —— 接近真实 Scout Mini
+  # Robot size [length width height], in meters, close to the real Scout Mini.
   size [ 0.612 0.580 0.245 ]
-  # 旋转中心(几何中心)
+  # Rotation center, placed at the geometric center.
   origin [ 0.0 0.0 0.0 0.0 ]
 
-  # 显示一个"鼻子"指示朝向,方便观察
+  # Show a nose marker to make the heading easier to see.
   gui_nose 1
 
-  # *** 关键:全向运动学 ***
-  # 课程示例是 "diff",但 Scout Mini 要求 "omni"
+  # Omnidirectional kinematics.
+  # The course example may use "diff", but Scout Mini requires "omni".
   drive "omni"
 
   color "blue"
 
-  # 把激光雷达装到机器人上,位置在中心略偏上
+  # Mount the LiDAR near the center of the robot, slightly above the body.
   rslidar( pose [ 0.0 0.0 0.15 0.0 ] )
 )

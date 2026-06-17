@@ -1,8 +1,8 @@
 # slam_toolbox.yaml
-# slam_toolbox 在线异步建图 (online async) 配置
-# —— 第二版:针对放射状伪影做了优化(缩短激光范围、收紧匹配)
+# slam_toolbox online async mapping (online async) configuration
+# —— Version 2: optimized for radial artifacts (shortened laser range, tightened matching)
 #
-# 关键:frame 名字要和 bag 里的一致!
+# Key: frame names must match those in the bag file!
 #   odom_frame  = UGV_odom
 #   base_frame  = UGV_base_link
 #   map_frame   = map
@@ -10,7 +10,7 @@
 
 slam_toolbox:
   ros__parameters:
-    # ---- 求解器插件 ----
+    # ---- Solver Plugin ----
     solver_plugin: solver_plugins::CeresSolver
     ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
     ceres_preconditioner: SCHUR_JACOBI
@@ -18,7 +18,7 @@ slam_toolbox:
     ceres_dogleg_type: TRADITIONAL_DOGLEG
     ceres_loss_function: None
 
-    # ---- 坐标系(必须和 bag 一致)----
+    # ---- Coordinate Frames (must match those in the bag file) ----
     odom_frame: UGV_odom
     map_frame: map
     base_frame: UGV_base_link
@@ -26,29 +26,30 @@ slam_toolbox:
     use_map_saver: true
     mode: mapping
 
-    # ---- 建图常用参数 ----
+    # ---- Mapping Common Parameters ----
     debug_logging: false
     throttle_scans: 1
     transform_publish_period: 0.02
-    map_update_interval: 2.0
+    map_update_interval: 0.5 #1.0
     resolution: 0.05
-    # *** 关键改动1:缩短激光范围,远处点最易产生放射状伪影 ***
-    max_laser_range: 15.0
-    minimum_time_interval: 0.2
+    min_laser_range: 0.40 #0.30
+    # *** shorten laser range, distant points are most likely to generate radial artifacts ***
+    max_laser_range: 6.0 #12.0
+    minimum_time_interval: 0.1
     transform_timeout: 0.2
     tf_buffer_duration: 30.0
     stack_size_to_use: 40000000
     enable_interactive_mode: true
 
-    # ---- 扫描匹配参数 ----
+    # ---- Scan Matching Parameters ----
     use_scan_matching: true
     use_scan_barycenter: true
-    # *** 关键改动2:更频繁更新,减少漂移累积 ***
-    minimum_travel_distance: 0.2
-    minimum_travel_heading: 0.2
-    scan_buffer_size: 10
-    # *** 关键改动3:收紧缓冲扫描距离 ***
-    scan_buffer_maximum_scan_distance: 12.0
+    # *** reference TA example for more frequent updates, reduce drift accumulation ***
+    minimum_travel_distance: 0.03 #0.05
+    minimum_travel_heading: 0.03 #0.05
+    scan_buffer_size: 20 #10
+    # ***  tighten buffer scan distance ***
+    scan_buffer_maximum_scan_distance: 5.0 #8.0
     link_match_minimum_response_fine: 0.1
     link_scan_maximum_distance: 1.5
     loop_search_maximum_distance: 3.0
@@ -58,17 +59,17 @@ slam_toolbox:
     loop_match_minimum_response_coarse: 0.35
     loop_match_minimum_response_fine: 0.45
 
-    # ---- 相关性匹配 ----
+    # ---- Correlation Matching ----
     correlation_search_space_dimension: 0.5
     correlation_search_space_resolution: 0.01
     correlation_search_space_smear_deviation: 0.1
 
-    # ---- 回环匹配 ----
+    # ---- Loop Closure Matching ----
     loop_search_space_dimension: 8.0
     loop_search_space_resolution: 0.05
     loop_search_space_smear_deviation: 0.03
 
-    # ---- 扫描匹配器精调 ----
+    # ---- Scan Matcher Fine-Tuning ----
     distance_variance_penalty: 0.5
     angle_variance_penalty: 1.0
     fine_search_angle_offset: 0.00349

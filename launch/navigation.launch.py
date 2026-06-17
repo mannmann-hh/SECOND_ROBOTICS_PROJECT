@@ -15,7 +15,7 @@ def generate_launch_description():
     nav2_dir = get_package_share_directory('nav2_bringup')
 
     world_file = os.path.join(pkg_dir, 'world', 'scout.world')
-    map_file = os.path.join(pkg_dir, 'map', 'my_map.yaml')
+    map_file = os.path.join(pkg_dir, 'map', 'my_map_2.yaml')
     params_file = os.path.join(pkg_dir, 'config', 'nav2_params.yaml')
     rviz_file = os.path.join(pkg_dir, 'config', 'navigation.rviz')
     goals_file = os.path.join(pkg_dir, 'csv', 'goals.csv')
@@ -38,12 +38,12 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'stage_bridge_package',
-            default_value='stage_ros2',
+            default_value='second_project',
             description='Package that provides the Stage ROS 2 bridge executable.'
         ),
         DeclareLaunchArgument(
             'stage_bridge_executable',
-            default_value='stage_ros2',
+            default_value='stageros',
             description='Stage ROS 2 bridge executable.'
         ),
 

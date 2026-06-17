@@ -1,15 +1,15 @@
 // goal_publisher.cpp
-// 第二个机器人项目 (Task 2) —— 目标发布节点
+// Second robotics project  -- goal publisher node
 //
-// 功能:从 CSV 文件读取一系列目标 (x, y, theta),通过 nav2 的
-//       NavigateToPose action 依次发送给机器人。
-//       只有当前一个目标【到达】或【被中止】后,才发送下一个目标。
+// Function: read a sequence of goals (x, y, theta) from a CSV file and send
+// them to the robot one by one through Nav2's NavigateToPose action.
+// A new goal is sent only after the current goal succeeds or is aborted.
 //
-// 关键点:
-//   - 使用 action(不是 topic),符合作业要求 "using action"
-//   - 顺序状态机:一次只追踪一个目标
-//   - theta (yaw 弧度) 转四元数填入 PoseStamped
-//   - CSV 路径通过参数传入,绝对【不用绝对路径】(否则 0 分)
+// Key points:
+//   - Uses an action client, not a topic, matching the "using action" requirement.
+//   - Sequential state machine: only one active goal is tracked at a time.
+//   - theta is yaw in radians and is converted to a quaternion for PoseStamped.
+//   - The CSV path is passed as a parameter instead of being hard-coded.
 
 #include <chrono>
 #include <fstream>
@@ -29,11 +29,11 @@ using namespace std::chrono_literals;
 using NavigateToPose = nav2_msgs::action::NavigateToPose;
 using GoalHandle = rclcpp_action::ClientGoalHandle<NavigateToPose>;
 
-// 一个目标点的简单结构体
+// Simple goal point structure.
 struct Goal {
   double x;
   double y;
-  double theta;  // yaw,弧度
+  double theta;  // yaw in radians
 };
 
 class GoalPublisher : public rclcpp::Node
@@ -41,26 +41,26 @@ class GoalPublisher : public rclcpp::Node
 public:
   GoalPublisher() : Node("goal_publisher"), current_goal_index_(0)
   {
-    // ---- 声明参数 ----
+    // ---- Declare parameters ----
     this->declare_parameter<std::string>("csv_path", "goals.csv");
     this->declare_parameter<std::string>("goal_frame", "map");
 
     csv_path_   = this->get_parameter("csv_path").as_string();
     goal_frame_ = this->get_parameter("goal_frame").as_string();
 
-    // ---- 创建 action client ----
+    // ---- Create action client ----
     action_client_ = rclcpp_action::create_client<NavigateToPose>(
       this, "navigate_to_pose");
 
-    // ---- 读取 CSV ----
+    // ---- Load CSV ----
     if (!load_goals_from_csv(csv_path_)) {
       RCLCPP_ERROR(this->get_logger(),
-        "无法读取目标 CSV 文件: %s", csv_path_.c_str());
+        "Failed to read goal CSV file: %s", csv_path_.c_str());
       init_ok_ = false;
       return;
     }
     RCLCPP_INFO(this->get_logger(),
-      "已从 CSV 读取 %zu 个目标", goals_.size());
+      "Loaded %zu goals from CSV", goals_.size());
 
     start_timer_ = this->create_wall_timer(
       1s, std::bind(&GoalPublisher::start_sending, this));
@@ -69,7 +69,7 @@ public:
   bool is_ok() const { return init_ok_; }
 
 private:
-  // -------------------- 读取 CSV --------------------
+  // -------------------- Load CSV --------------------
   bool load_goals_from_csv(const std::string & path)
   {
     std::ifstream file(path);
@@ -97,7 +97,7 @@ private:
         std::getline(ss, token, ','); g.theta = std::stod(token);
       } catch (const std::exception & e) {
         RCLCPP_WARN(this->get_logger(),
-          "跳过格式错误的行: %s", line.c_str());
+          "Skipping malformed line: %s", line.c_str());
         continue;
       }
       goals_.push_back(g);
@@ -106,7 +106,7 @@ private:
     return !goals_.empty();
   }
 
-  // -------------------- 启动:等 server 然后发第一个 --------------------
+  // -------------------- Startup: wait for the server and send the first goal --------------------
   void start_sending()
   {
     if (!action_client_->action_server_is_ready()) {
@@ -121,12 +121,12 @@ private:
     send_next_goal();
   }
 
-  // -------------------- 发送下一个目标 --------------------
+  // -------------------- Send the next goal --------------------
   void send_next_goal()
   {
     if (current_goal_index_ >= goals_.size()) {
       RCLCPP_INFO(this->get_logger(),
-        "全部 %zu 个目标已处理完毕,节点关闭", goals_.size());
+        "All %zu goals have been processed; shutting down", goals_.size());
       rclcpp::shutdown();
       return;
     }
@@ -146,7 +146,7 @@ private:
     goal_msg.pose.pose.orientation.w = std::cos(g.theta / 2.0);
 
     RCLCPP_INFO(this->get_logger(),
-      "发送目标 %zu/%zu: x=%.2f y=%.2f theta=%.3f",
+      "Sending goal %zu/%zu: x=%.2f y=%.2f theta=%.3f",
       current_goal_index_ + 1, goals_.size(), g.x, g.y, g.theta);
 
     auto send_goal_options =
@@ -167,7 +167,7 @@ private:
     action_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
-  // -------------------- 回调:目标被接受/拒绝 --------------------
+  // -------------------- Callback: goal accepted/rejected --------------------
   void goal_response_callback(const GoalHandle::SharedPtr & goal_handle)
   {
     if (!goal_handle) {
@@ -177,7 +177,7 @@ private:
       start_timer_ = this->create_wall_timer(
         2s, std::bind(&GoalPublisher::retry_current_goal, this));
     } else {
-      RCLCPP_INFO(this->get_logger(), "目标已被接受,机器人开始移动");
+      RCLCPP_INFO(this->get_logger(), "Goal accepted; robot is moving");
     }
   }
 
@@ -187,7 +187,7 @@ private:
     send_next_goal();
   }
 
-  // -------------------- 回调:导航过程中的反馈 --------------------
+  // -------------------- Callback: navigation feedback --------------------
   void feedback_callback(
     GoalHandle::SharedPtr,
     const std::shared_ptr<const NavigateToPose::Feedback> feedback)
@@ -195,29 +195,29 @@ private:
     static int counter = 0;
     if (counter++ % 20 == 0) {
       RCLCPP_INFO(this->get_logger(),
-        "  剩余距离: %.2f m", feedback->distance_remaining);
+        "  Distance remaining: %.2f m", feedback->distance_remaining);
     }
   }
 
-  // -------------------- 回调:目标结束(成功/中止/取消) --------------------
+  // -------------------- Callback: goal finished (succeeded/aborted/canceled) --------------------
   void result_callback(const GoalHandle::WrappedResult & result)
   {
     switch (result.code) {
       case rclcpp_action::ResultCode::SUCCEEDED:
         RCLCPP_INFO(this->get_logger(),
-          "目标 %zu 已到达", current_goal_index_ + 1);
+          "Goal %zu reached", current_goal_index_ + 1);
         break;
       case rclcpp_action::ResultCode::ABORTED:
         RCLCPP_WARN(this->get_logger(),
-          "目标 %zu 被中止 (aborted),继续下一个",
+          "Goal %zu was aborted; continuing to the next goal",
           current_goal_index_ + 1);
         break;
       case rclcpp_action::ResultCode::CANCELED:
         RCLCPP_WARN(this->get_logger(),
-          "目标 %zu 被取消 (canceled)", current_goal_index_ + 1);
+          "Goal %zu was canceled", current_goal_index_ + 1);
         break;
       default:
-        RCLCPP_ERROR(this->get_logger(), "未知的结果码");
+        RCLCPP_ERROR(this->get_logger(), "Unknown result code");
         break;
     }
 
@@ -225,7 +225,7 @@ private:
     send_next_goal();
   }
 
-  // -------------------- 成员变量 --------------------
+  // -------------------- Member variables --------------------
   rclcpp_action::Client<NavigateToPose>::SharedPtr action_client_;
   rclcpp::TimerBase::SharedPtr start_timer_;
   std::vector<Goal> goals_;
